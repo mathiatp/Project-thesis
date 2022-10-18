@@ -1,0 +1,196 @@
+piren:
+    name: "piren"
+    description: "NED frame located at milliAmperes spot at Piren"
+    lla: [63.4389029083, 10.39908278, 39.923]
+
+piren_ENU:
+    name: "piren_ENU"
+    description: "ENU frame located at milliAmperes spot at Piren"
+    static_transform:
+        parent_frame: "piren"
+        translation: [0, 0, 0]
+        rotation: [3.14159665359, 0, 1.57079636679]
+
+ravnkloa_NED:
+    name: "ravnkloa_NED"
+    description: "NED frame located at the Ravnkloa dock"
+    static_transform:
+        parent_frame: "piren"
+        translation: [-519.19, -312.17, 0.]
+        rotation: [0, 0, 0]
+
+ravnkloa_ENU:
+    name: "ravnkloa_ENU"
+    description: "ENU frame located at the Ravnkloa dock"
+    static_transform:
+        parent_frame: "ravnkloa_NED"
+        translation: [0., 0., 0.]
+        rotation: [3.14159665359, 0, 1.57079636679]
+
+fosenkaia_NED:
+    name: "fosenkaia_NED"
+    description: "NED frame located at the radar rig on Fosenkaia"
+    static_transform:
+        parent_frame: "piren"
+        lla: [63.435167, 10.393028, 39.923]
+        rotation: [0, 0, 0]
+
+vessel_center:
+    name: "vessel_center"
+    description: "BODY frame marking the vessel center. Marked by a black cross at the main hatch"
+
+vessel_fore:
+    name: "vessel_fore"
+    description: "BODY-aligned frame with origin at fore tip of the vessel"
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [2.55, 0, 0]
+        rotation: [0, 0, 0]
+
+gps_antenna:
+    name: "gps_antenna"
+    description: "BODY frame located at the master (STB) gps antenna at milliAmpere"
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0, 0.975, -2.33]
+        rotation: [0, 0, 0]
+
+ir_f:
+    name: "ir_f"
+    description: "Front IR camera frame. Origin at the camera, with x-axis pointing outwards from the camera and z pointing down."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0.2, 0, -3.86]
+        rotation: [0.0, 0, 0]
+
+ir_fr:
+    name: "ir_fr"
+    description: "Front right IR camera frame. Origin at the camera, with x-axis pointing outwards from the camera and z pointing down."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0.0618034, 0.1902113, -3.86]
+        rotation: [0.00, 0, 1.25663706144]
+
+ir_rr:
+    name: "ir_rr"
+    description: "Rear right IR camera frame. Origin at the camera, with x-axis pointing outwards from the camera and z pointing down."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [-0.1618034, 0.11755705, -3.86]
+        rotation: [0.00, 0, 2.51327412287]
+
+ir_rl:
+    name: "ir_rl"
+    description: "Rear left IR camera frame. Origin at the camera, with x-axis pointing outwards from the camera and z pointing down."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [-0.1618034, -0.11755705, -3.86]
+        rotation: [0.0, 0, -2.51327412287]
+
+ir_fl:
+    name: "ir_fl"
+    description: "Front left IR camera frame. Origin at the camera, with x-axis pointing outwards from the camera and z pointing down."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0.0618034, -0.1902113, -3.86]
+        rotation: [0.00, 0, -1.25663706144]
+
+ir_to_eo_transform: &ir_to_eo_transform
+    translation: [0, 0, 8]
+    rotation: [0, -0.0, 0]
+
+eo_f:
+    name: "EO_F"
+    description: "Front optical camera frame. Origin at the camera, with x-axis pointing outwards z-axis downwards."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0.2, 0, -3.79]
+        rotation: [1.3090, 0, 1.5708] # 75deg, 0deg, 90deg
+eo_fr:
+    name: "EO_FR"
+    description: "Front right optical camera frame. Origin at the camera, with x-axis pointing outwards z-axis downwards."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0.0618034, 0.1902113, -3.79]
+        rotation: [1.3090, 0, 2.8274] # 75deg, 0deg, 162deg
+
+eo_fl:
+    name: "EO_FL"
+    description: "Front left optical camera frame. Origin at the camera, with x-axis pointing outwards z-axis downwards."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0.0618034, -0.1902113, -3.79]
+        rotation: [1.3090, -0.0, 0.3141] #75deg, 0deg, 306deg
+
+eo_rr:
+    name: "EO_RR"
+    description: "Rear right optical camera frame. Origin at the camera, with x-axis pointing outwards z-axis downwards."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [-0.1618034, 0.11755705, -3.79]
+        rotation: [1.3090, 0, 4.0841] # 75deg, 0deg, 234deg
+
+eo_rl:
+    name: "EO_RL"
+    description: "Rear left optical camera frame. Origin at the camera, with x-axis pointing outwards z-axis downwards."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [-0.1618034, -0.11755705, -3.79]
+        rotation: [1.3090, 0, -0.9425] # 75deg, 0deg, -54deg
+
+navico_radar:
+    name: "navico_radar"
+    description: "Navico 4G radar frame. Origin at the center of the radar, aligned with the vessel frame"
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0, 0, -2.96]
+        rotation: [0, 0, 0]
+navtech:
+    name: "navtech_radar"
+    description: "Navico 4G radar frame. Origin at the center of the radar, aligned with the vessel frame"
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0, 0, -2.96]
+        rotation: [0, 0, 0]
+velodyne:
+    name: "velodyne"
+    description: "Velodyne lidar frame"
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [0, 0, -3.7]
+        rotation: [0, 0, -0.6027]
+
+ultrasonic_dist_fore_port:
+    name: "ultrasonic_dist_fore_port"
+    description: "Fore port ultrasonic distance sensor."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [2.4, -0.7, 0.]
+        rotation: [0, 0, 0]
+
+ultrasonic_dist_fore_starboard:
+    name: "ultrasonic_dist_fore_starboard"
+    description: "Fore starboard ultrasonic distance sensor."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [2.4, 0.7, 0.]
+        rotation: [0, 0, 0]
+
+ultrasonic_dist_aft_port:
+    name: "ultrasonic_dist_aft_port"
+    description: "Aft port ultrasonic distance sensor."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [-2.4, -0.7, 0.]
+        rotation: [0, 0, 3.141596653589793]
+
+ultrasonic_dist_aft_starboard:
+    name: "ultrasonic_dist_aft_starboard"
+    description: "Aft starboard ultrasonic distance sensor."
+    static_transform:
+        parent_frame: "vessel_center"
+        translation: [-2.4, 0.7, 0.]
+        rotation: [0, 0, 3.141596653589793]
+
+vessel_body: "vessel_center"
+local_NED: "piren"
