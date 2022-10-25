@@ -5,7 +5,7 @@ import yaml
 from yaml.loader import SafeLoader
 import cv2
 from scipy.interpolate import griddata
-from config import IMAGE_HEIGHT, IMAGE_WIDTH
+from config import BEW_IMAGE_HEIGHT, BEW_IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_WIDTH, MAX_DIST_X, MAX_DIST_Y, MIN_DIST_X, MIN_DIST_Y
 
 def georeference_point_eq(intrinsic_matrix: np.ndarray,
                             image_points: np.ndarray,
@@ -68,9 +68,9 @@ class Image:
         self._im_undistorted = cv2.undistort(self._im, K, D)
         self._im_pos = self.calculate_im_pos(K, camera_rotation, camera_translation)
         self._im_pos_cut = self.cut_im_pos()
-        self._im_undistorted_cut, self._im_bird_eye = self.calculate_new_image(camera_rotation)
+        self._im_undistorted_cut= self.calculate_new_image(camera_rotation)
 
-
+    # INIT
     def calculate_im_pos(self, K, camera_rotation, camera_translation):
         target_elevation = np.array(0)  
 
@@ -89,17 +89,17 @@ class Image:
         # np.save('Camera_FR_distance_array.npy', im_pos)     
         # im_pos = np.load('Camera_FR_distance_array.npy')
         return im_pos
-
-    def cut_im_pos(self):
+    # INIT
+    def cut_im_pos(self): 
 
         cut_off_distance = 20
         im_pos_cut = self.im_pos.copy()[self.row_cut_off:,:,:]
 
-        mask = np.any((abs(im_pos_cut) > cut_off_distance), axis=2)
+        mask = np.any((abs(im_pos_cut) > cut_off_distance), axis=2) 
         im_pos_cut[mask] = np.array([np.nan, np.nan, np.nan])
 
         return im_pos_cut
-    
+    """
     def rotate_im_pos_from_original_to_forward(self, camera_rotation, im_pos_cut):
         im_pos_cut = im_pos_cut
         a = camera_rotation[2] - math.pi/2
@@ -110,8 +110,9 @@ class Image:
         im_pos_cut_F = np.einsum('ij,jkl->ikl', rot_mat,im_pos_cut)
 
         return im_pos_cut_F
-
-
+    """
+    
+    """
     def rotate_im_pos_from_forward_to_original(self, camera_rotation, im_pos_cut_F):
         im_pos_cut_F = im_pos_cut_F
 
@@ -123,7 +124,9 @@ class Image:
         im_pos_original_camera = np.einsum('ij,jkl->ikl', rot_mat, im_pos_cut_F)
 
         return im_pos_original_camera  
+    """
     
+    # UPDATE
     def normalize_im_pos(self, camera_rotation, im_pos_cut_t):
         im_pos_cut_F = im_pos_cut_t
         # im_pos_cut_F = self.rotate_im_pos_from_original_to_forward(camera_rotation, im_pos_cut)
@@ -134,29 +137,14 @@ class Image:
 
 
         im_pos_cut_F = np.einsum('ij, jkl->ikl', switch_xy, im_pos_cut_F)
-        # im_pos_cut_F =  im_pos_cut_t = np.einsum('ijk->jki',im_pos_cut_F)
-
-
-
-
 
         max_x = np.nanmax(im_pos_cut_F[0,:,:])
-        # min_x_index = np.where(im_pos_cut[:,:,0] == min_y)[-1] 
-        # min_x = im_pos_cut[-1,min_x_index[-1]][1]
         min_x = np.nanmin(im_pos_cut_F[0,:,:])
 
         # Swithing from x forward, y right axis to x right, y forward to match image cooridnates
         max_y = np.nanmax(im_pos_cut_F[1,:,:])
-        # min_y = np.nanmin(np.ma.masked_array(im_pos_cut[:,:,0], mask=im_pos_cut[:,:,0]==0))
         min_y = np.nanmin(im_pos_cut_F[1,:,:])
 
-        # # Assuming mirrored values on negative side of y axis
-        # max_x = np.nanmax(im_pos_cut_F[:,:,0])
-        # # min_x_index = np.where(im_pos_cut[:,:,0] == min_y)[-1] 
-        # # min_x = im_pos_cut[-1,min_x_index[-1]][1]
-        # min_x = np.nanmin(im_pos_cut_F[:,:,0])
-
-        # Normalize im_pos to origo in middle and -1 to 1 on axis
 
         s_x = 2/(max_x-min_x)
         t_x = -s_x * min_x-1
@@ -169,17 +157,34 @@ class Image:
                       [0, 0,    1]])
         im_pos_cut_F_normalized = np.einsum('ij,jkl->ikl', N, im_pos_cut_F)
 
-        norm_x_max_F = np.nanmax(im_pos_cut_F_normalized[0,:,:])
-        norm_x_min_F = np.nanmin(im_pos_cut_F_normalized[0,:,:])
-        norm_y_max_F = np.nanmax(im_pos_cut_F_normalized[1,:,:])
-        norm_y_min_F = np.nanmin(im_pos_cut_F_normalized[1,:,:])
+        return im_pos_cut_F_normalized
 
-        # im_pos_cut_normalized = self.rotate_im_pos_from_forward_to_original(camera_rotation, im_pos_cut_F_normalized)
+    # UPDATE
+    def normalize_im_pos_for_BEW(self, camera_rotation, im_pos_cut_t):
+        im_pos_cut_F = im_pos_cut_t
+        # Swithing from x forward, y right axis to x right, y forward to match image cooridnates
+        switch_xy = np.array([[0,1,0],
+                              [1,0,0],
+                              [0,0,1]])
 
-        # norm_x_max = np.nanmax(im_pos_cut_normalized[0,:,:])
-        # norm_x_min = np.nanmin(im_pos_cut_normalized[0,:,:])
-        # norm_y_max = np.nanmax(im_pos_cut_normalized[1,:,:])
-        # norm_y_min = np.nanmin(im_pos_cut_normalized[1,:,:])
+        im_pos_cut_F = np.einsum('ij, jkl->ikl', switch_xy, im_pos_cut_F)
+
+        max_x = MAX_DIST_X
+        min_x = MIN_DIST_X
+        
+        max_y = MAX_DIST_Y
+        min_y = MIN_DIST_Y
+
+        s_x = 2/(max_x-min_x)
+        t_x = -s_x * min_x-1
+
+        s_y = 2/(max_y-min_y)
+        t_y = -s_y * min_y-1
+
+        N = np.array([[s_x, 0,  t_x],
+                      [0, s_y,  t_y],
+                      [0, 0,    1]])
+        im_pos_cut_F_normalized = np.einsum('ij,jkl->ikl', N, im_pos_cut_F)
 
         return im_pos_cut_F_normalized
 
@@ -189,10 +194,57 @@ class Image:
         im_pos_cut_t = np.einsum('ijk->kij',im_pos_cut)
         
         im_cut = self.im_undistorted.copy()[self.row_cut_off:,:,:]
-        im_pos_normalized = self.normalize_im_pos(camera_rotation,im_pos_cut_t)
+        # im_pos_normalized = self.normalize_im_pos(camera_rotation,im_pos_cut_t)
 
 
-        new_h, new_w = IMAGE_HEIGHT, IMAGE_WIDTH
+        # new_h, new_w = IMAGE_HEIGHT, IMAGE_WIDTH
+
+        # K = np.array([[new_w/2-1,     0,          new_w/2],
+        #               [0,           -(new_h/2-1),    new_h/2],
+        #               [0,           0,          1]])
+
+        # im_pos_pixel = np.einsum('ij,jkl->ikl', K, im_pos_normalized)
+        # im_pos_pixel = np.einsum('ijk->jki',im_pos_pixel)
+
+        # im_pos_pixel =  np.nan_to_num(im_pos_pixel, nan = 99999999)
+        # im_pos_pixel = im_pos_pixel.astype(int)
+        # im_pos_pixel = im_pos_pixel[:,:,:2]
+
+        # points_x_all = im_pos_pixel[:,:,1]
+        # points_x = np.transpose(np.array([np.ravel(points_x_all)]))
+        # points_x_all = np.transpose(np.array([np.ravel(points_x_all)]))
+        # points_x = np.transpose(np.array([points_x[points_x != 99999999]]))
+
+        # points_y = im_pos_pixel[:,:,0]
+        # points_y = np.transpose(np.array([np.ravel(points_y)]))
+        # points_y = np.transpose(np.array([points_y[points_y != 99999999]]))
+
+        # # points_y = np.transpose(np.array([np.ravel(im_pos_pixel[im_pos_pixel[:,:,0] != 99999999])]))
+        # points = np.concatenate((points_x,points_y), axis=1)
+        # grid_x,grid_y = np.meshgrid(range(new_h), range(new_w), indexing='ij')
+
+        # rgb = im_cut
+
+        # rgb = np.reshape(rgb,(len(points_x_all), self._chan))
+        # rgb = np.delete(rgb, np.where(points_x_all == 99999999), axis=0)
+
+        # grid_z0 = griddata(points, rgb, (grid_x, grid_y), method='linear')
+        # grid_z0[np.where(np.isnan(grid_z0))] = 0
+        # grid_z0 = grid_z0[:,:,:].astype(np.uint8)
+        
+        return im_cut#, grid_z0
+     
+
+    def calculate_BEW_points_and_rgb_for_interpolation(self, camera_rotation):
+
+        im_pos_cut = self.im_pos_cut
+        im_pos_cut_t = np.einsum('ijk->kij',im_pos_cut)
+        
+        im_cut = self.im_undistorted.copy()[self.row_cut_off:,:,:]
+        im_pos_normalized = self.normalize_im_pos_for_BEW(camera_rotation,im_pos_cut_t)
+
+
+        new_h, new_w = BEW_IMAGE_HEIGHT, BEW_IMAGE_WIDTH
 
         K = np.array([[new_w/2-1,     0,          new_w/2],
                       [0,           -(new_h/2-1),    new_h/2],
@@ -218,7 +270,6 @@ class Image:
         points = np.concatenate((points_x,points_y), axis=1)
         grid_x,grid_y = np.meshgrid(range(new_h), range(new_w), indexing='ij')
 
-        # mask = np.any(> cut_off_distance), axis=2)
         rgb = im_cut
 
         rgb = np.reshape(rgb,(len(points_x_all), self._chan))
@@ -228,24 +279,14 @@ class Image:
         grid_z0[np.where(np.isnan(grid_z0))] = 0
         grid_z0 = grid_z0[:,:,:].astype(np.uint8)
         
+        return points, rgb 
 
 
-        # im_bird_eye = np.zeros((new_h,new_w,3)).astype(int)
-        # im_cut_h, im_cut_w,_ = np.shape(im_cut)
-        # for i in range(im_cut_h-1):
-        #     for j in range(im_cut_w-1):
-        #         pixel = im_pos_pixel[i,j,:]
-        #         if ((pixel[1]>new_h) or (pixel[0]>new_w)):
-        #             continue
-        #         rgb = im_cut[i,j,:]
-        #         im_bird_eye[pixel[1],pixel[0],:] = rgb
-        return im_cut, grid_z0
-     
 
     def update_im(self, im: np.array, K: np.array, D: np.array, camera_rotation: np.array):
         self._im = im
         self._im_undistorted = cv2.undistort(self._im, K, D)
-        self._im_undistorted_cut, self._im_bird_eye = self.calculate_new_image(camera_rotation)
+        self._im_undistorted_cut = self.calculate_new_image(camera_rotation)
 
     @property
     def im(self):
@@ -342,15 +383,22 @@ class Camera:
     def camera_translation(self):
         return self._camera_translation
 
-class BirdsEyeView:
+
+
+class BirdsEyeView2:
     def __init__(self, im_F:np.array, im_FR:np.array, im_FL:np.array, im_RR:np.array, im_RL:np.array, im_mA1: np.array):
         self._im_F = im_F
         self._im_FR = im_FR
         self._im_FL = im_FL
         self._im_RR = im_RR
         self._im_RL = im_RL
-        self._mA1 = im_mA1
+        self._im_mA1 = im_mA1
         self._birds_eye = self.make_birds_eye()
+
+    def make_BEW(self):
+
+
+        pass
 
     def make_birds_eye(self):
         offset_w = 400
@@ -359,7 +407,7 @@ class BirdsEyeView:
         birds_eye_height = IMAGE_HEIGHT*2 +offset_h
         mA1_width = 700
         mA1_heigth = 900
-        im_mA1 = cv2.resize(self._mA1,(mA1_width,mA1_heigth))
+        im_mA1 = cv2.resize(self._im_mA1,(mA1_width,mA1_heigth))
 
         im_birds_eye = np.zeros((birds_eye_height, birds_eye_width,3), dtype=np.uint8)
         # Insert small images into larger
@@ -423,6 +471,24 @@ class VesselmA1:
     def RL(self):
         return self._RL
 
+def make_BEW(vesselmA1: VesselmA1):
+    points_F, rgb_F = vesselmA1.F.im.calculate_BEW_points_and_rgb_for_interpolation(vesselmA1.F.camera_rotation)
+    points_FR, rgb_FR = vesselmA1.FR.im.calculate_BEW_points_and_rgb_for_interpolation(vesselmA1.FR.camera_rotation)
+    points_FL, rgb_FL = vesselmA1.FL.im.calculate_BEW_points_and_rgb_for_interpolation(vesselmA1.FL.camera_rotation)
+    points_RR, rgb_RR = vesselmA1.RR.im.calculate_BEW_points_and_rgb_for_interpolation(vesselmA1.RR.camera_rotation)
+    points_RL, rgb_RL = vesselmA1.RL.im.calculate_BEW_points_and_rgb_for_interpolation(vesselmA1.RL.camera_rotation)
+    
+    points = np.vstack((points_F, points_FR,points_FL, points_RR, points_RL))
+
+    rgb = np.vstack((rgb_F, rgb_FR,rgb_FL, rgb_RR, rgb_RL))
+
+    grid_x,grid_y = np.meshgrid(range(BEW_IMAGE_HEIGHT), range(BEW_IMAGE_WIDTH), indexing='ij')
+
+
+    grid_z0 = griddata(points, rgb, (grid_x, grid_y), method='linear')
+    grid_z0[np.where(np.isnan(grid_z0))] = 0
+    grid_z0 = grid_z0[:,:,:].astype(np.uint8)
+    return grid_z0
 
 def yaml_file_to_dict(file_name: str):
     with open(file_name) as f:

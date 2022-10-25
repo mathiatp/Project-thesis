@@ -3,7 +3,7 @@ import cv2
 import rosbag
 from cv_bridge import CvBridge
 import matplotlib.pyplot as plt
-from utils import VesselmA1, Camera, yaml_file_to_dict, get_camera_name_from_topic_str
+from utils import VesselmA1, Camera, make_BEW, yaml_file_to_dict, get_camera_name_from_topic_str
 
 
 
@@ -36,7 +36,7 @@ def main():
     bag, vesselmA1 = init()
     
     bridge = CvBridge()
-    count = 0
+    count = 1
 
 
     for topic, msg, t in bag.read_messages(topics=[ '/sensor_rig/optical/F/image_raw',
@@ -112,10 +112,16 @@ def main():
             print('Next camera coming up!')
         
         print("Wrote image %i" % count)
-        if count == 4:
-            break
+        if count % (5*40) == 0:
+            im_BEW = make_BEW(vesselmA1)
+            im_name = "360bew_crude_stitch_"+str(count//5*40)+".jpg"
+            plt.imsave(im_name, im_BEW)
+            plt.figure()
+            plt.imshow(im_BEW)
             plt.show()
-            cv2.waitKey(0)
+            # break
+            # plt.show()
+            # cv2.waitKey(0)
 
             
         #     plt.figure()
