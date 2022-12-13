@@ -68,7 +68,7 @@ class Image:
         self._im_undistorted = cv2.undistort(self._im, K, D)
         self._im_pos = self.calculate_im_pos(K, camera_rotation, camera_translation)
         self._im_pos_cut = self.cut_im_pos()
-        self._im_undistorted_cut= self.calculate_new_image(camera_rotation)
+        self._im_undistorted_cut= self.get_im_indistorted_cut()
 
     # INIT
     def calculate_im_pos(self, K, camera_rotation, camera_translation):
@@ -99,32 +99,7 @@ class Image:
         im_pos_cut[mask] = np.array([np.nan, np.nan, np.nan])
 
         return im_pos_cut
-    """
-    def rotate_im_pos_from_original_to_forward(self, camera_rotation, im_pos_cut):
-        im_pos_cut = im_pos_cut
-        a = camera_rotation[2] - math.pi/2
-        b = 2*math.pi - abs(camera_rotation[2] - math.pi/2)
-        yaw_rotation_to_forward = np.min(np.array([a, b]))
-        rot_mat = R.from_euler('xyz', np.array([0, 0, yaw_rotation_to_forward])).as_matrix()
 
-        im_pos_cut_F = np.einsum('ij,jkl->ikl', rot_mat,im_pos_cut)
-
-        return im_pos_cut_F
-    """
-    
-    """
-    def rotate_im_pos_from_forward_to_original(self, camera_rotation, im_pos_cut_F):
-        im_pos_cut_F = im_pos_cut_F
-
-        a = camera_rotation[2] - math.pi/2
-        b = 2*math.pi - abs(camera_rotation[2] - math.pi/2)
-        yaw_rotation_to_forward = np.min(np.array([a, b]))
-        rot_mat = R.from_euler('xyz', np.array([0, 0, yaw_rotation_to_forward])).as_matrix().T
-
-        im_pos_original_camera = np.einsum('ij,jkl->ikl', rot_mat, im_pos_cut_F)
-
-        return im_pos_original_camera  
-    """
     
     # UPDATE
     def normalize_im_pos(self, camera_rotation, im_pos_cut_t):
@@ -188,51 +163,10 @@ class Image:
 
         return im_pos_cut_F_normalized
 
-    def calculate_new_image(self, camera_rotation):
-
-        im_pos_cut = self.im_pos_cut
-        im_pos_cut_t = np.einsum('ijk->kij',im_pos_cut)
-        
-        im_cut = self.im_undistorted.copy()[self.row_cut_off:,:,:]
-        # im_pos_normalized = self.normalize_im_pos(camera_rotation,im_pos_cut_t)
-
-
-        # new_h, new_w = IMAGE_HEIGHT, IMAGE_WIDTH
-
-        # K = np.array([[new_w/2-1,     0,          new_w/2],
-        #               [0,           -(new_h/2-1),    new_h/2],
-        #               [0,           0,          1]])
-
-        # im_pos_pixel = np.einsum('ij,jkl->ikl', K, im_pos_normalized)
-        # im_pos_pixel = np.einsum('ijk->jki',im_pos_pixel)
-
-        # im_pos_pixel =  np.nan_to_num(im_pos_pixel, nan = 99999999)
-        # im_pos_pixel = im_pos_pixel.astype(int)
-        # im_pos_pixel = im_pos_pixel[:,:,:2]
-
-        # points_x_all = im_pos_pixel[:,:,1]
-        # points_x = np.transpose(np.array([np.ravel(points_x_all)]))
-        # points_x_all = np.transpose(np.array([np.ravel(points_x_all)]))
-        # points_x = np.transpose(np.array([points_x[points_x != 99999999]]))
-
-        # points_y = im_pos_pixel[:,:,0]
-        # points_y = np.transpose(np.array([np.ravel(points_y)]))
-        # points_y = np.transpose(np.array([points_y[points_y != 99999999]]))
-
-        # # points_y = np.transpose(np.array([np.ravel(im_pos_pixel[im_pos_pixel[:,:,0] != 99999999])]))
-        # points = np.concatenate((points_x,points_y), axis=1)
-        # grid_x,grid_y = np.meshgrid(range(new_h), range(new_w), indexing='ij')
-
-        # rgb = im_cut
-
-        # rgb = np.reshape(rgb,(len(points_x_all), self._chan))
-        # rgb = np.delete(rgb, np.where(points_x_all == 99999999), axis=0)
-
-        # grid_z0 = griddata(points, rgb, (grid_x, grid_y), method='linear')
-        # grid_z0[np.where(np.isnan(grid_z0))] = 0
-        # grid_z0 = grid_z0[:,:,:].astype(np.uint8)
-        
-        return im_cut#, grid_z0
+    # UPDATE
+    def get_im_indistorted_cut(self):
+        im_cut = self.im_undistorted.copy()[self.row_cut_off:,:,:]        
+        return im_cut
      
 
     def calculate_BEW_points_and_rgb_for_interpolation(self, camera_rotation):
@@ -275,9 +209,9 @@ class Image:
         rgb = np.reshape(rgb,(len(points_x_all), self._chan))
         rgb = np.delete(rgb, np.where(points_x_all == 99999999), axis=0)
 
-        grid_z0 = griddata(points, rgb, (grid_x, grid_y), method='linear')
-        grid_z0[np.where(np.isnan(grid_z0))] = 0
-        grid_z0 = grid_z0[:,:,:].astype(np.uint8)
+        # grid_z0 = griddata(points, rgb, (grid_x, grid_y), method='linear')
+        # grid_z0[np.where(np.isnan(grid_z0))] = 0
+        # grid_z0 = grid_z0[:,:,:].astype(np.uint8)
         
         return points, rgb 
 
@@ -286,7 +220,7 @@ class Image:
     def update_im(self, im: np.array, K: np.array, D: np.array, camera_rotation: np.array):
         self._im = im
         self._im_undistorted = cv2.undistort(self._im, K, D)
-        self._im_undistorted_cut = self.calculate_new_image(camera_rotation)
+        self._im_undistorted_cut = self.get_im_indistorted_cut()
 
     @property
     def im(self):
@@ -384,7 +318,7 @@ class Camera:
         return self._camera_translation
 
 
-
+"""
 class BirdsEyeView2:
     def __init__(self, im_F:np.array, im_FR:np.array, im_FL:np.array, im_RR:np.array, im_RL:np.array, im_mA1: np.array):
         self._im_F = im_F
@@ -426,7 +360,7 @@ class BirdsEyeView2:
     @property
     def birds_eye(self):
         return self._birds_eye
-
+"""
 class VesselmA1:    
 
     def __init__(self, num_cameras: int):
